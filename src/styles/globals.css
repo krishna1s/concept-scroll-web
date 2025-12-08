@@ -1,0 +1,263 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+@layer base {
+  body {
+    /* NOTE: The @apply directive below will show as an error in the editor
+     * but it's valid and will work correctly at build time with Tailwind.
+     */
+    @apply transition-colors duration-300;
+  }
+}
+
+@layer utilities {
+  /* Custom animation classes */
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-in-out forwards;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up 0.5s ease-out forwards;
+  }
+  
+  .animate-slide-down {
+    animation: slide-down 0.5s ease-out forwards;
+  }
+  
+  .animate-slide-in-right {
+    animation: slide-in-right 0.5s ease-out forwards;
+  }
+  
+  .animate-slide-in-left {
+    animation: slide-in-left 0.5s ease-out forwards;
+  }
+  
+  .animate-pulse-scale {
+    animation: pulse-scale 2s ease-in-out infinite;
+  }
+}
+
+/* Hide scrollbar for content categorization row */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Ensure bottom space for fixed navigation */
+main.pb-20 {
+  padding-bottom: 5rem !important;
+}
+
+/* Ensure proper spacing for sidebar on desktop */
+@media (min-width: 768px) {
+  .md\:pl-64 {
+    padding-left: 16rem !important;
+  }
+  
+  .md\:pl-16 {
+    padding-left: 4rem !important;
+  }
+  
+  main.pb-20 {
+    padding-bottom: 1.5rem !important;
+  }
+  
+  /* Ensure main content doesn't overlap with sidebar */
+  .main-content {
+    width: 100% !important;
+    max-width: calc(100% - 2rem) !important; /* Increased from 1rem to 2rem */
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Default main content spacing when sidebar is expanded */
+  body:not(.sidebar-collapsed) .main-content {
+    margin-left: 16rem !important; /* 256px for expanded sidebar */
+  }
+  
+  /* Main content spacing when sidebar is collapsed */
+  body.sidebar-collapsed .main-content {
+    margin-left: 4rem !important; /* 64px for collapsed sidebar */
+  }
+  
+  /* Apply proper spacing for content when sidebar is present */
+  .sidebar-spacing + .main-content,
+  .sidebar-spacing ~ .main-content {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  
+  /* Adjust max-width for container when sidebar is open */
+  .container {
+    max-width: calc(100% - 2rem) !important;
+  }
+}
+
+/* Fix for mobile search bar positioning */
+@media (max-width: 768px) {
+  .sticky.top-0.z-50 form {
+    z-index: 51;
+  }
+}
+
+/* Animation for sidebar collapse/expand */
+.sidebar-transition {
+  transition: width 0.3s ease, padding 0.3s ease;
+}
+
+.sidebar-content-transition {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Smooth transition for main content when sidebar changes */
+.main-content {
+  transition: margin-left 0.3s ease !important;
+}
+
+/* Ensure hamburger menu is only visible on landing page */
+.md\:hidden.hamburger-menu {
+  display: none;
+}
+
+body:not(.is-landing-page) .md\:hidden.hamburger-menu {
+  display: none !important;
+}
+
+/* Add styles for progress bars */
+.progress-bar-container {
+  width: 100%;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  height: 0.625rem;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 1s ease-in-out;
+}
+
+/* Interactive elements styling */
+.interactive-quiz-option {
+  transition: all 0.2s ease;
+}
+
+.interactive-quiz-option:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.interactive-quiz-option.correct {
+  background-color: rgba(34, 197, 94, 0.1);
+  border-color: rgb(34, 197, 94);
+  color: rgb(34, 197, 94);
+}
+
+.interactive-quiz-option.incorrect {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: rgb(239, 68, 68);
+  color: rgb(239, 68, 68);
+}
+
+/* Fix for tab visibility */
+.fixed.bottom-0.z-50 {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Responsive fixes */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-down {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-scale {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Add missing hover effect animations */
+@keyframes hover-lift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-2px);
+  }
+}
