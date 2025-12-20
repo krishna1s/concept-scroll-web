@@ -1068,6 +1068,18 @@ export class DjangoApiClient implements IApiClient {
     return this.request<Chapter>(url);
   }
 
+  private mapToDailyGoal(g: any): DailyGoal {
+    return {
+        ...g,
+        title: g.title || g.subject_name || 'Daily Goal',
+        current: g.completed_minutes ?? g.current ?? 0,
+        target: g.target_minutes ?? g.target ?? 0,
+        completed_minutes: g.completed_minutes ?? g.current ?? 0,
+        target_minutes: g.target_minutes ?? g.target ?? 0,
+        is_completed: g.is_completed ?? g.completed ?? false,
+    };
+  }
+
   // ==================== Gamification ====================
 
   async getCurrentDailyGoal(): Promise<DailyGoal | null> {
@@ -1084,14 +1096,7 @@ export class DjangoApiClient implements IApiClient {
         if (goals.length === 0) return null;
 
         // Map raw data to DailyGoal interface
-        const mappedGoals: DailyGoal[] = goals.map(g => ({
-            ...g,
-            title: g.title || g.subject_name || 'Daily Goal',
-            current: g.completed_minutes ?? g.current ?? 0,
-            target: g.target_minutes ?? g.target ?? 0,
-            completed_minutes: g.completed_minutes ?? g.current ?? 0,
-            target_minutes: g.target_minutes ?? g.target ?? 0,
-        }));
+        const mappedGoals: DailyGoal[] = goals.map(g => this.mapToDailyGoal(g));
 
         // Prioritize:
         // 1. Active (is_active = true)
@@ -1116,7 +1121,7 @@ export class DjangoApiClient implements IApiClient {
         body: JSON.stringify(data)
       }
     );
-    return response.data;
+    return this.mapToDailyGoal(response.data);
   }
 
   async updateDailyGoalProgress(goalId: string, completedMinutes: number): Promise<DailyGoal> {
@@ -1127,7 +1132,7 @@ export class DjangoApiClient implements IApiClient {
             body: JSON.stringify({ completed_minutes: completedMinutes })
         }
     );
-    return response.data;
+    return this.mapToDailyGoal(response.data);
   }
 
   async startDailyGoalSession(goalId: string): Promise<DailyGoal> {
@@ -1137,7 +1142,7 @@ export class DjangoApiClient implements IApiClient {
         method: 'POST'
       }
     );
-    return response.data;
+    return this.mapToDailyGoal(response.data);
   }
 
   async stopDailyGoalSession(goalId: string, secondsStudied: number): Promise<DailyGoal> {
@@ -1148,7 +1153,7 @@ export class DjangoApiClient implements IApiClient {
         body: JSON.stringify({ seconds_studied: secondsStudied })
       }
     );
-    return response.data;
+    return this.mapToDailyGoal(response.data);
   }
 
   async completeDailyGoal(goalId: string): Promise<import('../../types').GoalCompletionResponse> {
@@ -1526,14 +1531,18 @@ export class DjangoApiClient implements IApiClient {
       if (response.data && Array.isArray(response.data)) return response.data;
       return [];
     } catch (error) {
-      console.warn('Public subjects fetch failed', error);
+      console.warn('Failed to fetch public subjects', error);
       return [];
     }
   }
 
   async getPublicBooks(classId: string, subjectId: string): Promise<Book[]> {
     try {
-      const url = `${API_ENDPOINTS.PUBLIC_BOOKS}?class_id=${classId}&subject_id=${subjectId}`;
+      const params = new URLSearchParams({
+          class_id: classId,
+          subject_id: subjectId
+      });
+      const url = `${API_ENDPOINTS.PUBLIC_BOOKS}?${params.toString()}`;
       const response = await this.request<any>(url);
       
       if (Array.isArray(response)) return response;
@@ -1541,8 +1550,8 @@ export class DjangoApiClient implements IApiClient {
       if (response.data && Array.isArray(response.data)) return response.data;
       return [];
     } catch (error) {
-      console.warn('Public books fetch failed', error);
-      return [];
+       console.warn('Failed to fetch public books', error);
+       return [];
     }
   }
 
@@ -1556,16 +1565,66 @@ export class DjangoApiClient implements IApiClient {
       if (response.data && Array.isArray(response.data)) return response.data;
       return [];
     } catch (error) {
-      console.warn('Public chapters fetch failed', error);
-      return [];
+       console.warn('Failed to fetch public chapters', error);
+       return [];
     }
   }
 
-  // Legacy / Deprecated methods
-  async getScraperJobs(): Promise<import('../../types').ScraperJob[]> { return []; }
-  async scheduleScraperJob(config: any): Promise<any> { return {}; }
-  async getScraperJob(jobId: string): Promise<any> { return {}; }
-  async getScraperJobPreview(jobId: string): Promise<any> { return {}; }
-  async importScrapedContent(jobId: string, books: any[]): Promise<void> {}
-  async deleteScraperJob(jobId: string): Promise<void> {}
+  // Legacy mappings for components not yet updated
+  async scheduleScraperJob(config: any): Promise<any> {
+    return this.triggerScraper({
+      class_name: config.class_id, // Map ID to name if possible, or assume caller sends name
+      subject_name: config.subject_id,
+      medium: config.medium_id
+    });
+  }
+
+  async getScraperJobs(): Promise<import('../../types').ScraperJob[]> {
+    const res = await this.getScraperSessions();
+    // Map Session to Job type for compatibility
+    return res.sessions.map(s => ({
+      id: s.session_id,
+      status: s.status as any,
+      class_id: s.class_filter,
+      subject_id: s.subject_filter,
+      medium_id: s.medium_filter || '',
+      progress: s.status === 'completed' ? 100 : 0,
+      message: s.status,
+      books_found: s.books_found || 0,
+      chapters_found: s.chapters_found || 0,
+      created_at: s.created_at,
+      updated_at: s.updated_at
+    }));
+  }
+
+  async getScraperJob(jobId: string): Promise<import('../../types').ScraperJob> {
+    const res = await this.getScraperSessionDetails(jobId);
+    const s = res.session;
+    return {
+      id: s.session_id,
+      status: s.status as any,
+      class_id: s.class_filter,
+      subject_id: s.subject_filter,
+      medium_id: s.medium_filter || '',
+      progress: 100,
+      message: s.status,
+      books_found: s.books_found || 0,
+      chapters_found: s.chapters_found || 0,
+      created_at: s.created_at,
+      updated_at: s.updated_at
+    };
+  }
+
+  async getScraperJobPreview(jobId: string): Promise<import('../../types').ScraperPreviewData> {
+    const res = await this.getScraperSessionDetails(jobId);
+    return res.data;
+  }
+  
+  async importScrapedContent(jobId: string, books: import('../../types').ScrapedBook[]): Promise<void> {
+    await this.importScraperSession(jobId);
+  }
+
+  async deleteScraperJob(jobId: string): Promise<void> {
+    await this.deleteScraperSession(jobId);
+  }
 }
